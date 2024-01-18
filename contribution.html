@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        background-color: #f9f9f9;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      #container {
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .tabs {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      .tab {
+        padding: 10px;
+        margin: 0 10px;
+        cursor: pointer;
+        color: #555;
+        border: 1px solid #ccc;
+        border-bottom: 3px solid #f9f9f9;
+        border-radius: 5px 5px 0 0;
+      }
+
+      .tab.active {
+        background-color: #007bff;
+        color: #fff;
+        border: 1px solid #007bff;
+        border-bottom: 3px solid #007bff;
+        border-radius: 5px 5px 0 0;
+      }
+
+      #upper-section {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px 10px 0 0;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      #upper-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      #upper-table th,
+      #upper-table td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+      }
+
+      #content {
+        padding: 20px;
+      }
+
+      #totalContributions {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      #totalPerson1,
+      #totalPerson2,
+      #collective {
+        font-weight: bold;
+      }
+
+      #collective {
+        color: #28a745;
+      }
+
+      @media (max-width: 600px) {
+        #upper-section,
+        #totalContributions {
+          border-radius: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div class="tabs">
+        <div
+          class="tab active"
+          data-plan="PlanA"
+          onclick="showContributions('PlanA', 200)"
+        >
+          Plan A (200)
+        </div>
+        <div
+          class="tab"
+          data-plan="PlanB"
+          onclick="showContributions('PlanB', 100)"
+        >
+          Plan B (100)
+        </div>
+      </div>
+
+      <div id="upper-section">
+        <table id="upper-table">
+          <tr>
+            <th>Category</th>
+            <th>Details</th>
+          </tr>
+          <tr>
+            <td>Plan</td>
+            <td id="upper-plan">Plan A</td>
+          </tr>
+          <tr>
+            <td>Current Week</td>
+            <td id="upper-week">1</td>
+          </tr>
+          <tr>
+            <td>Person 1 expected Contribution</td>
+            <td id="upper-person1">ksh 0</td>
+          </tr>
+          <tr>
+            <td>Person 2 expected Contribution</td>
+            <td id="upper-person2">ksh 0</td>
+          </tr>
+        </table>
+      </div>
+
+      <div id="content"></div>
+
+      <div id="totalContributions">
+        <h2>Total Contributions So Far</h2>
+        <p id="totalPerson1">Person 1: ksh 0</p>
+        <p id="totalPerson2">Person 2: ksh 0</p>
+        <p id="collective">Collective: ksh 0</p>
+      </div>
+    </div>
+
+    <script>
+      let totalPerson1Contribution = 0;
+      let totalPerson2Contribution = 0;
+
+      function getWeekNumber() {
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 0);
+        const diff = now - startOfYear;
+        const oneWeekInMillis = 604800000; // 7 days in milliseconds
+        const weekNumber = Math.floor(diff / oneWeekInMillis) + 1;
+
+        return weekNumber;
+      }
+
+      function calculateContributions(baseAmount, week) {
+        return baseAmount * week;
+      }
+
+      function updateUpperSection(
+        plan,
+        week,
+        person1Contribution,
+        person2Contribution
+      ) {
+        document.getElementById("upper-plan").innerText = plan;
+        document.getElementById("upper-week").innerText = week;
+        document.getElementById(
+          "upper-person1"
+        ).innerText = `ksh ${person1Contribution}`;
+        document.getElementById(
+          "upper-person2"
+        ).innerText = `ksh ${person2Contribution}`;
+      }
+
+      function updateTotalContributions(baseAmount) {
+        totalPerson1Contribution = 0;
+        totalPerson2Contribution = 0;
+
+        for (let i = 1; i <= getWeekNumber(); i++) {
+          totalPerson1Contribution += calculateContributions(baseAmount, i);
+          totalPerson2Contribution += calculateContributions(baseAmount, i);
+        }
+
+        document.getElementById(
+          "totalPerson1"
+        ).innerText = `Person 1: ksh ${totalPerson1Contribution}`;
+        document.getElementById(
+          "totalPerson2"
+        ).innerText = `Person 2: ksh ${totalPerson2Contribution}`;
+        document.getElementById("collective").innerText = `Collective: ksh ${
+          totalPerson2Contribution + totalPerson1Contribution
+        }`;
+      }
+
+      function showContributions(plan, baseAmount) {
+        const currentWeek = getWeekNumber();
+        const person1Contribution = calculateContributions(
+          baseAmount,
+          currentWeek
+        );
+        const person2Contribution = calculateContributions(
+          baseAmount,
+          currentWeek
+        );
+
+        updateUpperSection(
+          plan,
+          currentWeek,
+          person1Contribution,
+          person2Contribution
+        );
+        updateTotalContributions(baseAmount);
+
+        // Update active tab style
+        const tabs = document.querySelectorAll(".tab");
+        tabs.forEach((tab) => tab.classList.remove("active"));
+        const activeTab = document.querySelector(`.tab[data-plan='${plan}']`);
+        activeTab.classList.add("active");
+      }
+
+      // Show default contributions for Plan A with base amount 200
+      showContributions("PlanA", 200);
+    </script>
+  </body>
+</html>

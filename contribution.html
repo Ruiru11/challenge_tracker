@@ -158,7 +158,7 @@
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 0);
         const diff = now - startOfYear;
-        const oneWeekInMillis = 604800000; // 7 days in milliseconds
+        const oneWeekInMillis = 604800000; 
         const weekNumber = Math.floor(diff / oneWeekInMillis) + 1;
 
         return weekNumber;

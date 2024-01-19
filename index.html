@@ -88,6 +88,38 @@
         color: #28a745;
       }
 
+      .paid {
+        color: #28a745; /* Green */
+      }
+
+      .unpaid {
+        color: #dc3545; /* Red */
+      }
+
+      .week-list {
+        margin-top: 15px;
+      }
+
+      .week-radio {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .week-radio input {
+        margin-top: 2px;
+      }
+
+      .week-status {
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      .week-contribution {
+        font-size: 14px;
+      }
+
       @media (max-width: 600px) {
         #upper-section,
         #totalContributions {
@@ -131,34 +163,50 @@
           </tr>
           <tr>
             <td>Person 1 expected Contribution</td>
-            <td id="upper-person1">ksh 0</td>
+            <td id="upper-person1" class="unpaid">ksh 0</td>
           </tr>
           <tr>
             <td>Person 2 expected Contribution</td>
-            <td id="upper-person2">ksh 0</td>
+            <td id="upper-person2" class="unpaid">ksh 0</td>
           </tr>
         </table>
+        <div id="upper-weeks-list" class="week-list"></div>
       </div>
 
       <div id="content"></div>
 
       <div id="totalContributions">
         <h2>Total Contributions So Far</h2>
-        <p id="totalPerson1">Person 1: ksh 0</p>
-        <p id="totalPerson2">Person 2: ksh 0</p>
-        <p id="collective">Collective: ksh 0</p>
+        <p id="totalPerson1" class="unpaid">Person 1: ksh 0</p>
+        <p id="totalPerson2" class="unpaid">Person 2: ksh 0</p>
+        <p id="collective" class="unpaid">Collective: ksh 0</p>
       </div>
     </div>
 
     <script>
       let totalPerson1Contribution = 0;
       let totalPerson2Contribution = 0;
+      let paidWeeksPlanA = [];
+      let paidWeeksPlanB = [];
+      let currentWeek = 1;
+
+      function isWeekPaid(plan, week) {
+        const paidWeeks = plan === "PlanA" ? paidWeeksPlanA : paidWeeksPlanB;
+        return paidWeeks.includes(week);
+      }
+
+      function markWeekAsPaid(plan, week) {
+        const paidWeeks = plan === "PlanA" ? paidWeeksPlanA : paidWeeksPlanB;
+        if (!paidWeeks.includes(week)) {
+          paidWeeks.push(week);
+        }
+      }
 
       function getWeekNumber() {
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 0);
         const diff = now - startOfYear;
-        const oneWeekInMillis = 604800000; 
+        const oneWeekInMillis = 604800000;
         const weekNumber = Math.floor(diff / oneWeekInMillis) + 1;
 
         return weekNumber;
@@ -166,6 +214,27 @@
 
       function calculateContributions(baseAmount, week) {
         return baseAmount * week;
+      }
+
+      function generateWeekList(baseAmount, plan) {
+        let weekList =
+          "<b>Weeks with Expected Amount:</b><div class='week-list'>";
+
+        for (let i = 1; i <= currentWeek; i++) {
+          const weekContribution = calculateContributions(baseAmount, i);
+          const weekStatus = isWeekPaid(plan, i) ? "paid" : "unpaid";
+          weekList += `
+            <div class="week-radio">
+              <input type="radio" name="${plan}-week" value="${i}" onclick="updatePaymentStatus('${plan}', ${i}, this.checked)">
+              <span class="week-status ${weekStatus}">Week ${i}:</span>
+              <span class="${weekStatus} week-contribution">ksh ${weekContribution}</span>
+            </div>
+          `;
+        }
+
+        weekList += "</div>";
+
+        return weekList;
       }
 
       function updateUpperSection(
@@ -182,13 +251,21 @@
         document.getElementById(
           "upper-person2"
         ).innerText = `ksh ${person2Contribution}`;
+        document.getElementById("upper-weeks-list").innerHTML =
+          generateWeekList(plan === "PlanA" ? 200 : 100, plan);
+
+        const upperPerson1Element = document.getElementById("upper-person1");
+        const upperPerson2Element = document.getElementById("upper-person2");
+
+        upperPerson1Element.classList.toggle("paid", isWeekPaid(plan, week));
+        upperPerson2Element.classList.toggle("paid", isWeekPaid(plan, week));
       }
 
       function updateTotalContributions(baseAmount) {
         totalPerson1Contribution = 0;
         totalPerson2Contribution = 0;
 
-        for (let i = 1; i <= getWeekNumber(); i++) {
+        for (let i = 1; i <= currentWeek; i++) {
           totalPerson1Contribution += calculateContributions(baseAmount, i);
           totalPerson2Contribution += calculateContributions(baseAmount, i);
         }
@@ -205,7 +282,7 @@
       }
 
       function showContributions(plan, baseAmount) {
-        const currentWeek = getWeekNumber();
+        currentWeek = getWeekNumber();
         const person1Contribution = calculateContributions(
           baseAmount,
           currentWeek
@@ -223,14 +300,25 @@
         );
         updateTotalContributions(baseAmount);
 
-        // Update active tab style
         const tabs = document.querySelectorAll(".tab");
         tabs.forEach((tab) => tab.classList.remove("active"));
         const activeTab = document.querySelector(`.tab[data-plan='${plan}']`);
         activeTab.classList.add("active");
       }
 
-      // Show default contributions for Plan A with base amount 200
+      function updatePaymentStatus(plan, week, paid) {
+        if (paid) {
+          markWeekAsPaid(plan, week);
+        } else {
+          const paidWeeks = plan === "PlanA" ? paidWeeksPlanA : paidWeeksPlanB;
+          const index = paidWeeks.indexOf(week);
+          if (index !== -1) {
+            paidWeeks.splice(index, 1);
+          }
+        }
+        showContributions(plan, plan === "PlanA" ? 200 : 100);
+      }
+
       showContributions("PlanA", 200);
     </script>
   </body>

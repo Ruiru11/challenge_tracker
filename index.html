@@ -134,9 +134,9 @@
         <div
           class="tab active"
           data-plan="PlanA"
-          onclick="showContributions('PlanA', 200)"
+          onclick="showContributions('PlanA', 300)"
         >
-          Plan A (200)
+          Plan A (300)
         </div>
         <div
           class="tab"
@@ -252,7 +252,7 @@
           "upper-person2"
         ).innerText = `ksh ${person2Contribution}`;
         document.getElementById("upper-weeks-list").innerHTML =
-          generateWeekList(plan === "PlanA" ? 200 : 100, plan);
+          generateWeekList(plan === "PlanA" ? 300 : 100, plan);
 
         const upperPerson1Element = document.getElementById("upper-person1");
         const upperPerson2Element = document.getElementById("upper-person2");
@@ -316,10 +316,10 @@
             paidWeeks.splice(index, 1);
           }
         }
-        showContributions(plan, plan === "PlanA" ? 200 : 100);
+        showContributions(plan, plan === "PlanA" ? 300 : 100);
       }
 
-      showContributions("PlanA", 200);
+      showContributions("PlanA", 300);
     </script>
   </body>
 </html>

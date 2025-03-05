@@ -12,7 +12,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
+        min-height: 100vh;
+        padding: 20px 0;
       }
 
       #container {
@@ -27,11 +28,12 @@
         display: flex;
         justify-content: center;
         margin-bottom: 20px;
+        flex-wrap: wrap;
       }
 
       .tab {
         padding: 10px;
-        margin: 0 10px;
+        margin: 5px;
         cursor: pointer;
         color: #555;
         border: 1px solid #ccc;
@@ -69,6 +71,7 @@
 
       #content {
         padding: 20px;
+        background-color: #fff;
       }
 
       #totalContributions {
@@ -96,19 +99,47 @@
         color: #dc3545; /* Red */
       }
 
-      .week-list {
-        margin-top: 15px;
+      #weekly-view,
+      #monthly-view {
+        display: none;
       }
 
-      .week-radio {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
+      .active-view {
+        display: block !important;
       }
 
-      .week-radio input {
-        margin-top: 2px;
+      .month-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      .month-table th,
+      .month-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+
+      .month-table th {
+        background-color: #f2f2f2;
+      }
+
+      .current-month {
+        background-color: #e8f4ff;
+      }
+
+      .future-month {
+        background-color: #f9f9f9;
+        color: #777;
+      }
+
+      .past-month {
+        background-color: #f2fff2;
+      }
+
+      .week-info {
+        margin-bottom: 10px;
       }
 
       .week-status {
@@ -125,6 +156,16 @@
         #totalContributions {
           border-radius: 0;
         }
+
+        .tabs {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .tab {
+          width: 80%;
+          text-align: center;
+        }
       }
     </style>
   </head>
@@ -137,13 +178,6 @@
           onclick="showContributions('PlanA', 300)"
         >
           Plan A (300)
-        </div>
-        <div
-          class="tab"
-          data-plan="PlanB"
-          onclick="showContributions('PlanB', 100)"
-        >
-          Plan B (100)
         </div>
       </div>
 
@@ -170,10 +204,43 @@
             <td id="upper-person2" class="unpaid">ksh 0</td>
           </tr>
         </table>
-        <div id="upper-weeks-list" class="week-list"></div>
       </div>
 
-      <div id="content"></div>
+      <div class="tabs">
+        <div
+          class="tab active"
+          data-view="weekly"
+          onclick="switchView('weekly')"
+        >
+          Weekly View
+        </div>
+        <div class="tab" data-view="monthly" onclick="switchView('monthly')">
+          Monthly View
+        </div>
+      </div>
+
+      <div id="content">
+        <div id="weekly-view" class="active-view">
+          <div id="weeks-info"></div>
+        </div>
+
+        <div id="monthly-view">
+          <table class="month-table" id="monthly-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Person 1 Expected</th>
+                <th>Person 2 Expected</th>
+                <th>Total Expected</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="monthly-table-body">
+              <!-- Will be filled by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div id="totalContributions">
         <h2>Total Contributions So Far</h2>
@@ -186,55 +253,142 @@
     <script>
       let totalPerson1Contribution = 0;
       let totalPerson2Contribution = 0;
-      let paidWeeksPlanA = [];
-      let paidWeeksPlanB = [];
-      let currentWeek = 1;
-
-      function isWeekPaid(plan, week) {
-        const paidWeeks = plan === "PlanA" ? paidWeeksPlanA : paidWeeksPlanB;
-        return paidWeeks.includes(week);
-      }
-
-      function markWeekAsPaid(plan, week) {
-        const paidWeeks = plan === "PlanA" ? paidWeeksPlanA : paidWeeksPlanB;
-        if (!paidWeeks.includes(week)) {
-          paidWeeks.push(week);
-        }
-      }
+      let currentPlan = "PlanA";
+      let currentBaseAmount = 300;
 
       function getWeekNumber() {
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 0);
         const diff = now - startOfYear;
-        const oneWeekInMillis = 604800000;
+        const oneWeekInMillis = 604800000; // 1 week in milliseconds
         const weekNumber = Math.floor(diff / oneWeekInMillis) + 1;
 
         return weekNumber;
+      }
+
+      function getCurrentMonth() {
+        return new Date().getMonth();
       }
 
       function calculateContributions(baseAmount, week) {
         return baseAmount * week;
       }
 
-      function generateWeekList(baseAmount, plan) {
-        let weekList =
-          "<b>Weeks with Expected Amount:</b><div class='week-list'>";
+      function getMonthName(monthIndex) {
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        return months[monthIndex];
+      }
+
+      function getWeeksInMonth(month, year) {
+        // Get the number of weeks in a specific month
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+
+        // Get week numbers for first and last day of month
+        const firstWeek = getWeekNumberForDate(firstDay);
+        const lastWeek = getWeekNumberForDate(lastDay);
+
+        return lastWeek - firstWeek + 1;
+      }
+
+      function getWeekNumberForDate(date) {
+        const startOfYear = new Date(date.getFullYear(), 0, 0);
+        const diff = date - startOfYear;
+        const oneWeekInMillis = 604800000; // 1 week in milliseconds
+        return Math.floor(diff / oneWeekInMillis) + 1;
+      }
+
+      function calculateMonthlyContribution(baseAmount, month) {
+        const currentYear = new Date().getFullYear();
+        const weeksInMonth = getWeeksInMonth(month, currentYear);
+        let totalMonthly = 0;
+
+        // Calculate which weeks of the year fall in this month
+        const firstDayOfMonth = new Date(currentYear, month, 1);
+        const firstWeekOfMonth = getWeekNumberForDate(firstDayOfMonth);
+
+        // Sum up all weekly contributions for this month
+        for (let weekOffset = 0; weekOffset < weeksInMonth; weekOffset++) {
+          const weekNumber = firstWeekOfMonth + weekOffset;
+          // Calculate contribution per person
+          totalMonthly += calculateContributions(baseAmount, weekNumber);
+        }
+
+        return totalMonthly;
+      }
+
+      function generateWeekInfo(baseAmount) {
+        const currentWeek = getWeekNumber();
+        let weekInfo = "";
 
         for (let i = 1; i <= currentWeek; i++) {
           const weekContribution = calculateContributions(baseAmount, i);
-          const weekStatus = isWeekPaid(plan, i) ? "paid" : "unpaid";
-          weekList += `
-            <div class="week-radio">
-              <input type="radio" name="${plan}-week" value="${i}" onclick="updatePaymentStatus('${plan}', ${i}, this.checked)">
+          const weekStatus = isWeekPaid(i) ? "paid" : "unpaid";
+
+          weekInfo += `
+            <div class="week-info">
               <span class="week-status ${weekStatus}">Week ${i}:</span>
-              <span class="${weekStatus} week-contribution">ksh ${weekContribution}</span>
+              <span class="week-contribution">ksh ${weekContribution} per person</span>
             </div>
           `;
         }
 
-        weekList += "</div>";
+        return weekInfo;
+      }
 
-        return weekList;
+      function generateMonthlyInfo(baseAmount) {
+        const currentMonth = getCurrentMonth();
+        const currentYear = new Date().getFullYear();
+        let monthlyTableBody = document.getElementById("monthly-table-body");
+        monthlyTableBody.innerHTML = "";
+
+        for (let month = 0; month < 12; month++) {
+          const personMonthly = calculateMonthlyContribution(baseAmount, month);
+          const totalMonthly = personMonthly * 2;
+          let monthClass = "";
+          let monthStatus = "";
+
+          if (month < currentMonth) {
+            monthClass = "past-month";
+            monthStatus = "Completed";
+          } else if (month === currentMonth) {
+            monthClass = "current-month";
+            monthStatus = "In Progress";
+          } else {
+            monthClass = "future-month";
+            monthStatus = "Upcoming";
+          }
+
+          const row = document.createElement("tr");
+          row.className = monthClass;
+          row.innerHTML = `
+            <td>${getMonthName(month)}</td>
+            <td>ksh ${personMonthly.toLocaleString()}</td>
+            <td>ksh ${personMonthly.toLocaleString()}</td>
+            <td>ksh ${totalMonthly.toLocaleString()}</td>
+            <td>${monthStatus}</td>
+          `;
+
+          monthlyTableBody.appendChild(row);
+        }
+      }
+
+      function isWeekPaid(weekNum) {
+        // Placeholder function - you would implement actual payment tracking logic here
+        return false;
       }
 
       function updateUpperSection(
@@ -251,38 +405,51 @@
         document.getElementById(
           "upper-person2"
         ).innerText = `ksh ${person2Contribution}`;
-        document.getElementById("upper-weeks-list").innerHTML =
-          generateWeekList(plan === "PlanA" ? 300 : 100, plan);
-
-        const upperPerson1Element = document.getElementById("upper-person1");
-        const upperPerson2Element = document.getElementById("upper-person2");
-
-        upperPerson1Element.classList.toggle("paid", isWeekPaid(plan, week));
-        upperPerson2Element.classList.toggle("paid", isWeekPaid(plan, week));
       }
 
       function updateTotalContributions(baseAmount) {
         totalPerson1Contribution = 0;
         totalPerson2Contribution = 0;
 
-        for (let i = 1; i <= currentWeek; i++) {
+        for (let i = 1; i <= getWeekNumber(); i++) {
           totalPerson1Contribution += calculateContributions(baseAmount, i);
           totalPerson2Contribution += calculateContributions(baseAmount, i);
         }
 
         document.getElementById(
           "totalPerson1"
-        ).innerText = `Person 1: ksh ${totalPerson1Contribution}`;
+        ).innerText = `Person 1: ksh ${totalPerson1Contribution.toLocaleString()}`;
         document.getElementById(
           "totalPerson2"
-        ).innerText = `Person 2: ksh ${totalPerson2Contribution}`;
-        document.getElementById("collective").innerText = `Collective: ksh ${
+        ).innerText = `Person 2: ksh ${totalPerson2Contribution.toLocaleString()}`;
+        document.getElementById("collective").innerText = `Collective: ksh ${(
           totalPerson2Contribution + totalPerson1Contribution
-        }`;
+        ).toLocaleString()}`;
+      }
+
+      function switchView(viewType) {
+        // Update tabs
+        const tabs = document.querySelectorAll(".tab[data-view]");
+        tabs.forEach((tab) => tab.classList.remove("active"));
+        document
+          .querySelector(`.tab[data-view="${viewType}"]`)
+          .classList.add("active");
+
+        // Hide all views
+        document.getElementById("weekly-view").classList.remove("active-view");
+        document.getElementById("monthly-view").classList.remove("active-view");
+
+        // Show selected view
+        document
+          .getElementById(`${viewType}-view`)
+          .classList.add("active-view");
       }
 
       function showContributions(plan, baseAmount) {
-        currentWeek = getWeekNumber();
+        currentPlan = plan;
+        currentBaseAmount = baseAmount;
+
+        const currentWeek = getWeekNumber();
         const person1Contribution = calculateContributions(
           baseAmount,
           currentWeek
@@ -300,26 +467,22 @@
         );
         updateTotalContributions(baseAmount);
 
-        const tabs = document.querySelectorAll(".tab");
-        tabs.forEach((tab) => tab.classList.remove("active"));
+        const planTabs = document.querySelectorAll(".tab[data-plan]");
+        planTabs.forEach((tab) => tab.classList.remove("active"));
         const activeTab = document.querySelector(`.tab[data-plan='${plan}']`);
         activeTab.classList.add("active");
+
+        // Update weekly view
+        document.getElementById("weeks-info").innerHTML =
+          generateWeekInfo(baseAmount);
+
+        // Update monthly view
+        generateMonthlyInfo(baseAmount);
       }
 
-      function updatePaymentStatus(plan, week, paid) {
-        if (paid) {
-          markWeekAsPaid(plan, week);
-        } else {
-          const paidWeeks = plan === "PlanA" ? paidWeeksPlanA : paidWeeksPlanB;
-          const index = paidWeeks.indexOf(week);
-          if (index !== -1) {
-            paidWeeks.splice(index, 1);
-          }
-        }
-        showContributions(plan, plan === "PlanA" ? 300 : 100);
-      }
-
+      // Show default contributions for Plan A with base amount 300
       showContributions("PlanA", 300);
     </script>
   </body>
 </html>
+
